@@ -1,9 +1,9 @@
 #! /usr/bin/env python3
 
-from modified_paramiko_pkey import KeyDecrpter
-
-import sys, paramiko
+import os, sys, paramiko, subprocess
 from getpass import getpass
+
+program_name = "sshpass"
 
 def check_ssh(target, target_user, target_password=None, target_port=22, private_key_file_path=None, private_key_passphrase=None):
     ssh_client = paramiko.SSHClient()
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     arguments = sys.argv[1:]
     user, host, port, private_key_file = None, None, 22, None
     if "-p" in arguments:
-        port = arguments[arguments.index("-p")+1]
+        port = int(arguments[arguments.index("-p")+1])
     for argument in arguments:
         if '@' in argument:
             user, host = argument.split('@')
@@ -28,3 +28,13 @@ if __name__ == "__main__":
         private_key_file = arguments[arguments.index("-i")+1]
         with open(private_key_file, 'r') as file:
             private_key_file_lines = file.readlines()
+    if not private_key_file:
+        password = getpass(f"{user}@{host}'s password: ")
+        while not check_ssh(host, user, password, port):
+            print("Permission denied, please try again.")
+            password = getpass(f"{user}@{host}'s password: ")
+        with open("credentials", 'a') as file:
+            file.write(f"SSH,{host},{port},{user},{password}")
+        sshpass_arguments = [program_name, '-p', password]
+        sshpass_arguments.extend(arguments)
+        os.execvp(program_name, sshpass_arguments)
