@@ -4,6 +4,7 @@ import os, sys, paramiko
 from getpass import getpass
 
 program_name = "sshpass"
+allowed_commands = ["ssh", "sftp", "scp"]
 
 def check_ssh(target, target_user, target_password=None, target_port=22, private_key_file_path=None, private_key_passphrase=None):
     ssh_client = paramiko.SSHClient()
@@ -38,7 +39,7 @@ def ssh(ssh_arguments):
             print("Permission denied, please try again.")
             password = getpass(f"{user}@{host}'s password: ")
         with open("credentials", 'a') as file:
-            file.write(f"SSH,{host},{port},{user},{password}\n")
+            file.write(f"{ssh_arguments[0]},{host},{port},{user},{password}\n")
         sshpass_arguments = [program_name, '-p', password]
         sshpass_arguments.extend(ssh_arguments)
         os.execvp(program_name, sshpass_arguments)
@@ -47,10 +48,10 @@ def ssh(ssh_arguments):
         while not check_ssh(host, user, target_port=port, private_key_file_path=private_key_file, private_key_passphrase=passphrase):
             passphrase = getpass(f"Enter passphrase for key '{private_key_file}': ")
         with open("credentials", 'a') as file:
-            file.write(f"SSH,{host},{port},{user},{private_key_file},{passphrase}\n")
+            file.write(f"{ssh_arguments[0]},{host},{port},{user},{private_key_file},{passphrase}\n")
         os.execvp(ssh_arguments[0], ssh_arguments)
 
 if __name__ == "__main__":
     arguments = sys.argv[1:]
-    if arguments[0] == "ssh":
+    if arguments[0] in allowed_commands:
         ssh(arguments)
