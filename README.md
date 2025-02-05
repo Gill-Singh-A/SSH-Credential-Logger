@@ -30,13 +30,9 @@ dnf install sshpass
 yum install sshpass
 ```
 ## Activation
-Either source *activate.sh*
+Source *activate.sh* and add it in *~/.bashrc* or *~/.zshrc* according to your systems
 ```bash
 source activate.sh
-```
-Or paste its content into *~/.bashrc* or *~/.zshrc* based on your system.
-```bash
-cat activate.sh | grep -v "/bin/bash" >> ~/.bashrc
 ```
 ## Output
 It would save the credentials of SSH Users and Passphrases of SSH Private Key Files in a file named ***credentials***, in format:
