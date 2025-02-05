@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-import os, sys, paramiko, subprocess
+import os, sys, paramiko
 from getpass import getpass
 
 program_name = "sshpass"
@@ -16,16 +16,15 @@ def check_ssh(target, target_user, target_password=None, target_port=22, private
     except Exception as error:
         return False
 
-if __name__ == "__main__":
-    arguments = sys.argv[1:]
+def ssh(ssh_arguments):
     user, host, port, private_key_file = None, None, 22, None
-    if "-p" in arguments:
-        port = int(arguments[arguments.index("-p")+1])
-    for argument in arguments:
+    if "-p" in ssh_arguments:
+        port = int(ssh_arguments[ssh_arguments.index("-p")+1])
+    for argument in ssh_arguments:
         if '@' in argument:
             user, host = argument.split('@')
-    if "-i" in arguments:
-        private_key_file = arguments[arguments.index("-i")+1]
+    if "-i" in ssh_arguments:
+        private_key_file = ssh_arguments[ssh_arguments.index("-i")+1]
         try:
             with open(private_key_file, 'r') as file:
                 private_key_file_lines = file.readlines()
@@ -41,7 +40,7 @@ if __name__ == "__main__":
         with open("credentials", 'a') as file:
             file.write(f"SSH,{host},{port},{user},{password}\n")
         sshpass_arguments = [program_name, '-p', password]
-        sshpass_arguments.extend(arguments)
+        sshpass_arguments.extend(ssh_arguments)
         os.execvp(program_name, sshpass_arguments)
     else:
         passphrase = getpass(f"Enter passphrase for key '{private_key_file}': ")
@@ -49,4 +48,9 @@ if __name__ == "__main__":
             passphrase = getpass(f"Enter passphrase for key '{private_key_file}': ")
         with open("credentials", 'a') as file:
             file.write(f"SSH,{host},{port},{user},{private_key_file},{passphrase}\n")
-        os.execvp(arguments[0], arguments)
+        os.execvp(ssh_arguments[0], ssh_arguments)
+
+if __name__ == "__main__":
+    arguments = sys.argv[1:]
+    if arguments[0] == "ssh":
+        ssh(arguments)
