@@ -3,6 +3,7 @@
 import os, sys, paramiko
 from getpass import getpass
 
+script_path = os.path.dirname(__file__)
 program_name = "sshpass"
 allowed_commands = ["ssh", "sftp", "scp"]
 
@@ -38,7 +39,7 @@ def ssh(ssh_arguments):
         while not check_ssh(host, user, password, port):
             print("Permission denied, please try again.")
             password = getpass(f"{user}@{host}'s password: ")
-        with open("credentials", 'a') as file:
+        with open(f"{script_path}/credentials", 'a') as file:
             file.write(f"{ssh_arguments[0]},{host},{port},{user},{password}\n")
         sshpass_arguments = [program_name, '-p', password]
         sshpass_arguments.extend(ssh_arguments)
@@ -47,7 +48,7 @@ def ssh(ssh_arguments):
         passphrase = getpass(f"Enter passphrase for key '{private_key_file}': ")
         while not check_ssh(host, user, target_port=port, private_key_file_path=private_key_file, private_key_passphrase=passphrase):
             passphrase = getpass(f"Enter passphrase for key '{private_key_file}': ")
-        with open("credentials", 'a') as file:
+        with open(f"{script_path}/credentials", 'a') as file:
             file.write(f"{ssh_arguments[0]},{host},{port},{user},{private_key_file},{passphrase}\n")
         os.execvp(ssh_arguments[0], ssh_arguments)
 
