@@ -6,6 +6,7 @@ from getpass import getpass
 script_path = os.path.dirname(__file__)
 program_name = "sshpass"
 allowed_commands = ["ssh", "sftp", "scp"]
+strict_key_checking_arguments = "-o StrictHostKeyChecking=no"
 
 def check_ssh(target, target_user, target_password=None, target_port=22, private_key_file_path=None, private_key_passphrase=None):
     ssh_client = paramiko.SSHClient()
@@ -43,6 +44,7 @@ def ssh(ssh_arguments):
             file.write(f"{ssh_arguments[0]},{host},{port},{user},{password}\n")
         sshpass_arguments = [program_name, '-p', password]
         sshpass_arguments.extend(ssh_arguments)
+        sshpass_arguments.extend("-o StrictHostKeyChecking=no".split(' '))
         os.execvp(program_name, sshpass_arguments)
     else:
         passphrase = getpass(f"Enter passphrase for key '{private_key_file}': ")
