@@ -30,7 +30,7 @@ def ssh(ssh_arguments):
         private_key_file = ssh_arguments[ssh_arguments.index("-i")+1]
         try:
             with open(private_key_file, 'r') as file:
-                private_key_file_lines = file.readlines()
+                file.readlines()
         except FileNotFoundError:
             print(f"Warning: Identity file {private_key_file} not accessible: No such file or directory.")
             print(f"{user}@{host}: Permission denied (publickey).")
@@ -52,7 +52,10 @@ def ssh(ssh_arguments):
             passphrase = getpass(f"Enter passphrase for key '{private_key_file}': ")
         with open(f"{script_path}/credentials", 'a') as file:
             file.write(f"{ssh_arguments[0]},{host},{port},{user},{private_key_file},{passphrase}\n")
-        os.execvp(ssh_arguments[0], ssh_arguments)
+        sshpass_arguments = [program_name, "-P", "passphrase", '-p', passphrase]
+        sshpass_arguments.extend(ssh_arguments)
+        sshpass_arguments.extend("-o StrictHostKeyChecking=no".split(' '))
+        os.execvp(program_name, sshpass_arguments)
 
 if __name__ == "__main__":
     arguments = sys.argv[1:]
