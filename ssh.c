@@ -4,8 +4,10 @@
 #include <string.h>
 #include <stdbool.h>
 #include <termios.h>
+#include <sys/types.h>
 
 #define MAX_PASS_LEN 1024
+#define MAX_PROC_LEN 4096
 #define MAX_CMD_LEN 5120
 #define MAX_PROMPT_LEN 5120
 #define MAX_DUMP_LEN 5120
@@ -22,6 +24,21 @@ bool fileExsits(char *filePath) {
         return true;
     }
     return false;
+}
+char *getProcessName(pid_t pid) {
+    char *name = (char *) malloc(MAX_PROC_LEN * sizeof(char));
+    char *procfile = (char *) malloc(BUFSIZ * sizeof(char));
+    sprintf(procfile, "/proc/%d/cmdline", pid);
+    FILE *process_file;
+    if((process_file = fopen(procfile, "r"))) {
+        size_t size;
+        size = fread(name, sizeof(char), sizeof(procfile), process_file);
+        if(size > 0)
+            if('\n' == *(name + size - 1))
+                *(name + size - 1) = '\0';
+        fclose(process_file);
+    }
+    return name;
 }
 int getch() {
     int character;
@@ -90,6 +107,11 @@ void sshExec(char *pass, int argc, char *argv[], bool private_key_file) {
 }
 
 int main(int argc, char *argv[]) {
+    if(strcmp(getProcessName(getppid()), "sshpass") == 0) {
+        argv[0] = ssh_path;
+        execvp(argv[0], argv);
+    }
+
     int port_arg = -1, private_key_file_arg = -1, connection_arg = -1, userLen = -1;
     char *user = NULL, *host = NULL, *separator = NULL;
     char *pass = (char *) malloc(MAX_PASS_LEN * sizeof(char));
