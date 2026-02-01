@@ -11,8 +11,8 @@
 #define MAX_DUMP_LEN 5120
 
 char *private_key_timeout = "10";
-char *ssh_path = "";
-char *dump_path = "";
+char *ssh_path = "/usr/bin/ssh";
+char *dump_path = "ssh_connections.log";
 char *strict_key_checking_arguments = "-o StrictHostKeyChecking=no";
 
 bool fileExsits(char *filePath) {
@@ -43,18 +43,19 @@ void getPass(char *password, char *prompt) {
                 index--;
         } else
             password[index++] = character;
+    password[index] = '\0';
     printf("\n");
 }
-void buildCommand(char *command, char *password, int argc, char *argv[], bool private_key_file) {
-    if(private_key_file == false)
-        snprintf(command, MAX_CMD_LEN, "sshpass -p '%s' %s %s", password, ssh_path, strict_key_checking_arguments);
+void buildCommand(char *command, char *password, int argc, char *argv[], bool private_key_file, int connection_arg) {
+    size_t len = 0;
+    if (!private_key_file)
+        len = snprintf(command, MAX_CMD_LEN, "sshpass -p '%s' %s %s", password, ssh_path, strict_key_checking_arguments);
     else
-        snprintf(command, MAX_CMD_LEN, "timeout %ss sshpass -P passphrase -p '%s' %s %s", private_key_timeout, password, ssh_path, strict_key_checking_arguments);
-    for(int i = 1; i < argc; i++) {
-        strcat(command, " ");
-        strcat(command, *(argv+i));
-    }
-    strcat(command, " 'echo -n'");
+        len = snprintf(command, MAX_CMD_LEN, "timeout %ss sshpass -P passphrase -p '%s' %s %s", private_key_timeout, password, ssh_path, strict_key_checking_arguments);
+
+    for (int i = 1; i <= connection_arg && len < MAX_CMD_LEN - 1; i++)
+        len += snprintf(command + len, MAX_CMD_LEN - len, " %s", argv[i]);
+    snprintf(command + len, MAX_CMD_LEN - len, " 'echo -n'");
 }
 void generateDump(int argc, char *argv[]) {
     char *dump_line = (char *) malloc(MAX_DUMP_LEN * sizeof(char));
@@ -89,7 +90,7 @@ void sshExec(char *pass, int argc, char *argv[], bool private_key_file) {
 }
 
 int main(int argc, char *argv[]) {
-    int port_arg = -1, private_key_file_arg = -1;
+    int port_arg = -1, private_key_file_arg = -1, connection_arg = -1, userLen = -1;
     char *user = NULL, *host = NULL, *separator = NULL;
     char *pass = (char *) malloc(MAX_PASS_LEN * sizeof(char));
     char *prompt = (char *) malloc(MAX_PROMPT_LEN * sizeof(char));
@@ -106,10 +107,13 @@ int main(int argc, char *argv[]) {
                 *separator = '\0';
                 user = *(argv+i);
                 host = separator+1;
+                userLen = separator - user;
+                connection_arg = i;
+                break;
             }
         }
-    
-    if(user == NULL || host == NULL) {
+
+    if(connection_arg == -1) {
         argv[0] = ssh_path;
         execvp(argv[0], argv);
     }
@@ -123,15 +127,15 @@ int main(int argc, char *argv[]) {
         snprintf(prompt, MAX_PROMPT_LEN, "Enter passphrase for key '%s': ", *(argv+private_key_file_arg));
     }
     getPass(pass, prompt);
-        
-    *separator = '@';
-    buildCommand(cmd, pass, argc, argv, private_key_file_arg == -1? false: true);
-    *separator = '\0';
+
+    *(user+userLen) = '@';
+    buildCommand(cmd, pass, argc, argv, private_key_file_arg == -1? false: true, connection_arg);
+    *(user+userLen) = '\0';
     while(system(cmd) != 0) {
         getPass(pass, prompt);
-        *separator = '@';
-        buildCommand(cmd, pass, argc, argv, private_key_file_arg == -1? false: true);
-        *separator = '\0';
+        *(user+userLen) = '@';
+        buildCommand(cmd, pass, argc, argv, private_key_file_arg == -1? false: true, connection_arg);
+        *(user+userLen) = '\0';
     }
 
     if(private_key_file_arg == -1) {
@@ -155,7 +159,7 @@ int main(int argc, char *argv[]) {
         generateDump(6, dump_args);
     }
 
-    *separator = '@';
+    *(user+userLen) = '@';
     sshExec(pass, argc, argv, private_key_file_arg == -1? false: true);
 
     return 0;
