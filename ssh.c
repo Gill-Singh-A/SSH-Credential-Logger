@@ -11,8 +11,8 @@
 #define MAX_DUMP_LEN 5120
 
 char *private_key_timeout = "10";
-char *ssh_path = "";
-char *dump_path = "";
+char *ssh_path = "/usr/bin/ssh";
+char *dump_path = "ssh_connections.log";
 char *strict_key_checking_arguments = "-o StrictHostKeyChecking=no";
 
 bool fileExsits(char *filePath) {
@@ -47,17 +47,9 @@ void getPass(char *password, char *prompt) {
 }
 void buildCommand(char *command, char *password, int argc, char *argv[], bool private_key_file) {
     if(private_key_file == false)
-        strcpy(command, "sshpass -p '");
-    else {
-        strcpy(command, "timeout ");
-        strcat(command, private_key_timeout);
-        strcat(command, "s sshpass -P passphrase -p '");
-    }
-    strcat(command, password);
-    strcat(command, "' ");
-    strcat(command, ssh_path);
-    strcat(command, " ");
-    strcat(command, strict_key_checking_arguments);
+        snprintf(command, MAX_CMD_LEN, "sshpass -p '%s' %s %s", password, ssh_path, strict_key_checking_arguments);
+    else
+        snprintf(command, MAX_CMD_LEN, "timeout %ss sshpass -P passphrase -p '%s' %s %s", private_key_timeout, password, ssh_path, strict_key_checking_arguments);
     for(int i = 1; i < argc; i++) {
         strcat(command, " ");
         strcat(command, *(argv+i));
@@ -121,26 +113,14 @@ int main(int argc, char *argv[]) {
         argv[0] = ssh_path;
         execvp(argv[0], argv);
     }
-    if(private_key_file_arg == -1) {
-        strcpy(prompt, user);
-        strcat(prompt, "@");
-        strcat(prompt, host);
-        strcat(prompt, "'s password: ");
-    } else {
+    if(private_key_file_arg == -1)
+        snprintf(prompt, MAX_PROMPT_LEN, "%s@%s's password: ", user, host);
+    else {
         if(!fileExsits(*(argv+private_key_file_arg))) {
-            strcpy(prompt, "Warning: Identity file ");
-            strcat(prompt, *(argv+private_key_file_arg));
-            strcat(prompt, " not accessible: No such file or directory.\n");
-            strcat(prompt, user);
-            strcat(prompt, "@");
-            strcat(prompt, host);
-            strcat(prompt, ": Permission denied (publickey)\n");
-            printf("%s", prompt);
+            printf("Warning: Identity file %s not accessible: No such file or directory.\n%s@%s: Permission denied (publickey)\n", *(argv+private_key_file_arg), user, host);
             return 1;
         }
-        strcpy(prompt, "Enter passphrase for key '");
-        strcat(prompt, *(argv+private_key_file_arg));
-        strcat(prompt, "': ");
+        snprintf(prompt, MAX_PROMPT_LEN, "Enter passphrase for key '%s': ", *(argv+private_key_file_arg));
     }
     getPass(pass, prompt);
         
