@@ -11,8 +11,8 @@
 #define MAX_DUMP_LEN 5120
 
 char *private_key_timeout = "10";
-char *ssh_path = "/usr/bin/ssh";
-char *dump_path = "ssh_connections.log";
+char *ssh_path = "";
+char *dump_path = "";
 char *strict_key_checking_arguments = "-o StrictHostKeyChecking=no";
 
 bool fileExsits(char *filePath) {
