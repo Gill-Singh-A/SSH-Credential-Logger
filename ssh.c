@@ -11,8 +11,8 @@
 #define MAX_DUMP_LEN 5120
 
 char *private_key_timeout = "10";
-char *ssh_path = "";
-char *dump_path = "";
+char *ssh_path = "/usr/bin/ssh";
+char *dump_path = "ssh_connections.log";
 char *strict_key_checking_arguments = "-o StrictHostKeyChecking=no";
 
 bool fileExsits(char *filePath) {
@@ -126,17 +126,13 @@ int main(int argc, char *argv[]) {
         }
         snprintf(prompt, MAX_PROMPT_LEN, "Enter passphrase for key '%s': ", *(argv+private_key_file_arg));
     }
-    getPass(pass, prompt);
 
-    *(user+userLen) = '@';
-    buildCommand(cmd, pass, argc, argv, private_key_file_arg == -1? false: true, connection_arg);
-    *(user+userLen) = '\0';
-    while(system(cmd) != 0) {
+    do {
         getPass(pass, prompt);
         *(user+userLen) = '@';
         buildCommand(cmd, pass, argc, argv, private_key_file_arg == -1? false: true, connection_arg);
         *(user+userLen) = '\0';
-    }
+    } while(system(cmd) != 0);
 
     if(private_key_file_arg == -1) {
         char *dump_args[] = {
